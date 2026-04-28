@@ -1,4 +1,4 @@
-/* ===== CONFIG ===== */
+/* ===== CONFIG =====  */
 const BG_IMAGES = [
   'images/bg1.png',
   'images/bg2.png',
