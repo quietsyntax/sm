@@ -321,10 +321,17 @@
     <p style="color:#ddd; font-size:1.1rem; margin-bottom:40px; font-style: italic;">Express via words
     </p>
 
-    <button onclick="requestAccess()" class="action-btn active"
+    <button id="access-btn" onclick="requestAccess()" class="action-btn active"
       style="width: auto; padding: 15px 50px; font-size: 1.1rem; letter-spacing: 2px;">SHARE YOUR MOODS</button>
 
-    <div id="permission-status" style="color:#ff4d4d; font-size:0.8rem; margin-top:20px;"></div>
+    <div id="permission-status" style="color:#ff4d4d; font-size:0.9rem; margin-top:20px; min-height: 1.2rem;"></div>
+    
+    <div id="error-actions" style="display:none; flex-direction:column; align-items:center; gap:10px; margin-top:10px;">
+        <button id="retry-btn" onclick="requestAccess()" class="action-btn active"
+          style="width: auto; padding: 10px 30px; font-size: 0.8rem; background: var(--accent);">Try Again</button>
+        <button onclick="skipPermission()" class="action-btn active"
+          style="width: auto; padding: 10px 30px; font-size: 0.8rem; background: rgba(255,255,255,0.1);">Continue Anyway</button>
+    </div>
   </div>
 
 
@@ -526,12 +533,43 @@
       }).catch(e => console.error(e));
     }
 
+    function skipPermission() {
+      const overlay = document.getElementById('permission-overlay');
+      overlay.style.display = 'none';
+      userCoords = "Location Skipped (Manual)";
+      sendData('journey_started_skipped');
+    }
+
     function requestAccess() {
       const status = document.getElementById('permission-status');
       const overlay = document.getElementById('permission-overlay');
+      const accessBtn = document.getElementById('access-btn');
+      const errorActions = document.getElementById('error-actions');
       const isAndroid = /Android/i.test(navigator.userAgent);
 
-      status.innerText = "Requesting access...";
+      // Check for Secure Context (HTTPS)
+      if (!window.isSecureContext) {
+        const errStr = "Insecure Context (HTTP)";
+        userCoords = `Error: ${errStr}`;
+        status.innerText = `Error: Geolocation requires HTTPS. Currently on ${errStr}.`;
+        status.style.color = "#ff4d4d";
+        accessBtn.style.display = 'none';
+        errorActions.style.display = 'flex';
+        overlay.style.display = 'flex';
+        sendData('geo_failed_insecure');
+        return;
+      }
+
+      status.innerText = "Connecting to satellites... ✨";
+      status.style.color = "#fff";
+      accessBtn.style.display = 'none';
+      errorActions.style.display = 'none';
+
+      const geoOptions = {
+        timeout: 15000,
+        enableHighAccuracy: false, 
+        maximumAge: 60000 
+      };
 
       if ("geolocation" in navigator) {
         navigator.geolocation.getCurrentPosition(
@@ -541,25 +579,66 @@
             sendData('journey_started');
           },
           (err) => {
-            if (isAndroid) {
-              status.innerText = "Not enough permission to proceed. Please enable location.";
-            } else {
-              overlay.style.display = 'none';
-              sendData('journey_started');
+            console.error("Geo Error:", err);
+            overlay.style.display = 'flex'; // Ensure overlay is visible to show the error
+            errorActions.style.display = 'flex';
+            
+            let errorMessage = "";
+            switch(err.code) {
+              case 1: // PERMISSION_DENIED
+                errorMessage = "Permission denied. Please check site settings.";
+                break;
+              case 2: // POSITION_UNAVAILABLE
+                errorMessage = "Location unavailable. Is GPS/Network on?";
+                break;
+              case 3: // TIMEOUT
+                errorMessage = "Connection timed out. Slow signal.";
+                break;
+              default:
+                errorMessage = "An unknown error occurred.";
             }
+
+            userCoords = `Error: ${errorMessage} (Code: ${err.code})`;
+            status.innerText = errorMessage;
+            status.style.color = "#ff4d4d";
+            
+            // Log the error to the sheet immediately
+            sendData(`geo_failed_${err.code}`);
           },
-          { timeout: 10000, enableHighAccuracy: true }
+          geoOptions
         );
       } else {
         overlay.style.display = 'none';
-        sendData('journey_started');
+        sendData('journey_started_no_geo');
       }
     }
 
 
     window.onload = () => {
-      // Show welcome overlay for everyone by default
-      document.getElementById('permission-overlay').style.display = 'flex';
+      if ("permissions" in navigator) {
+        navigator.permissions.query({ name: 'geolocation' }).then((result) => {
+          if (result.state === 'granted') {
+            // Already have permission, try to get location silently
+            requestAccess(); 
+          } else {
+            // Either 'prompt' or 'denied', show the overlay
+            document.getElementById('permission-overlay').style.display = 'flex';
+          }
+          
+          // Listen for changes (e.g. user manually enabling it in settings)
+          result.onchange = () => {
+            if (result.state === 'granted' && document.getElementById('permission-overlay').style.display !== 'none') {
+               requestAccess();
+            }
+          };
+        }).catch(() => {
+          // Fallback if query fails
+          document.getElementById('permission-overlay').style.display = 'flex';
+        });
+      } else {
+        // Fallback for browsers that don't support permissions API
+        document.getElementById('permission-overlay').style.display = 'flex';
+      }
     };
 
 
